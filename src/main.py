@@ -22,9 +22,9 @@ chrome_options.add_argument("--disable-dev-shm-usage")
 chrome_options.add_argument("--disable-gpu")
 chrome_options.binary_location = "/usr/bin/google-chrome"  # Especifica la ruta del binario de Chrome
 
-
 service = Service(ChromeDriverManager().install())
 driver = webdriver.Chrome(service=service, options=chrome_options)
+
 
 def generar_contenido_html(mensaje, nombre_archivo_definitivo=None, mandante=None, estado=True):
     fecha_hora_ejecucion = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
@@ -52,6 +52,7 @@ def generar_contenido_html(mensaje, nombre_archivo_definitivo=None, mandante=Non
 
     return contenido
 
+
 @app.route("/", methods=["POST"])
 def subir_reporte():
     data = request.get_json()
@@ -74,9 +75,10 @@ def subir_reporte():
         try:
             # Paso 2: Subir archivo al FTP
             navegar_a_carga_200_ext(driver)
-            #subir_archivo(driver, ruta_archivo_local, nombre_archivo_definitivo)
+            subir_archivo(driver, ruta_archivo_local, nombre_archivo_definitivo)
 
-            Logger.info(f"{datetime.now()} - Archivo {nombre_archivo_definitivo} descargado y subido con éxito para mandante {mandante}.")
+            Logger.info(
+                f"{datetime.now()} - Archivo {nombre_archivo_definitivo} descargado y subido con éxito para mandante {mandante}.")
 
             if mandante == 17:
                 mandante = "CMR"
@@ -96,12 +98,15 @@ def subir_reporte():
         except Exception as e:
             # Enviar correo de notificación de error al subir archivo
             subject = "Error en el proceso de subida de archivo ❌"
-            content = generar_contenido_html(f" ❌ Error al subir el archivo al FTP: {e}", nombre_archivo_definitivo, mandante)
-            send_email(subject, content, recipients=EMAIL_CONFIG["recipients"], attachment_path=ruta_archivo_local, estado=False)
+            content = generar_contenido_html(f" ❌ Error al subir el archivo al FTP: {e}", nombre_archivo_definitivo,
+                                             mandante)
+            send_email(subject, content, recipients=EMAIL_CONFIG["recipients"], attachment_path=ruta_archivo_local,
+                       estado=False)
             return jsonify({"error": f"Error al subir el archivo al FTP: {e}"}), 500
 
     finally:
         driver.quit()
+
 
 if __name__ == "__main__":
     app.run(port=8080, host="0.0.0.0", debug=False)

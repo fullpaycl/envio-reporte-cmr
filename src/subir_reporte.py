@@ -16,8 +16,7 @@ url_login = f"https://{usuario}:{contraseña}@wp.falabella.cl/ftpsrv/main.jsp"
 
 # Carpeta para guardar archivos descargados
 carpeta_local = "archivos_descargados"
-if not os.path.exists(carpeta_local):
-    os.makedirs(carpeta_local)
+os.makedirs(carpeta_local, exist_ok=True)
 
 def obtener_archivo_desde_api(mandante):
     fecha_actual = datetime.now().strftime("%Y-%m-%d")

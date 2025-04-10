@@ -5,7 +5,6 @@ from datetime import datetime
 from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.chrome.options import Options
-from webdriver_manager.chrome import ChromeDriverManager
 from config import EMAIL_CONFIG
 from mailer import send_email
 from subir_reporte import obtener_archivo_desde_api, navegar_a_carga_200_ext, subir_archivo
@@ -20,10 +19,7 @@ chrome_options.add_argument("--headless=new")
 chrome_options.add_argument("--no-sandbox")
 chrome_options.add_argument("--disable-dev-shm-usage")
 chrome_options.add_argument("--disable-gpu")
-chrome_options.binary_location = "/usr/bin/google-chrome"  # Especifica la ruta del binario de Chrome
-
-service = Service(ChromeDriverManager().install())
-driver = webdriver.Chrome(service=service, options=chrome_options)
+chrome_options.binary_location = "/usr/bin/google-chrome"  # Ruta binario Chrome
 
 
 def generar_contenido_html(mensaje, nombre_archivo_definitivo=None, mandante=None, estado=True):
@@ -61,12 +57,15 @@ def subir_reporte():
     if not mandante:
         return jsonify({"error": "Mandante no proporcionado"}), 400
 
+    # 🆕 Crear driver dentro del request
+    service = Service("/usr/local/bin/chromedriver")
+    driver = webdriver.Chrome(service=service, options=chrome_options)
+
     try:
         # Paso 1: Obtener archivo desde la API
         ruta_archivo_local, nombre_archivo_definitivo = obtener_archivo_desde_api(mandante)
 
         if not ruta_archivo_local:
-            # Enviar correo de notificación de error
             subject = "Error en el proceso de subida de archivo ❌"
             content = generar_contenido_html(f"❌ No se obtuvo archivo desde la API para mandante {mandante}")
             send_email(subject, content, recipients=EMAIL_CONFIG["recipients"], estado=False)
@@ -85,18 +84,15 @@ def subir_reporte():
             if mandante == 14:
                 mandante = "BANCO FALABELLA"
 
-            # Enviar correo de notificación de éxito
             subject = f"✅Proceso carga reporte {mandante},  completado con éxito 📋"
             content = generar_contenido_html("El proceso de subida de archivo se ejecutó correctamente.",
                                              nombre_archivo_definitivo, mandante)
             send_email(subject, content, recipients=EMAIL_CONFIG["recipients"], attachment_path=ruta_archivo_local)
 
-            # Eliminar el archivo después de enviarlo por correo
             os.remove(ruta_archivo_local)
             print(f"✅ Archivo {ruta_archivo_local} eliminado después de subirlo.")
             return jsonify({"message": "Proceso completado con éxito"}), 200
         except Exception as e:
-            # Enviar correo de notificación de error al subir archivo
             subject = "Error en el proceso de subida de archivo ❌"
             content = generar_contenido_html(f" ❌ Error al subir el archivo al FTP: {e}", nombre_archivo_definitivo,
                                              mandante)
